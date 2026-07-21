@@ -39,8 +39,8 @@ PUSH_INTERVAL = int(os.environ.get("PUSH_INTERVAL", "300"))
 
 os.makedirs(WORKDIR, exist_ok=True)
 
-# 弹幕日志按 房间号/年-月/年-月-日 分类：<WORKDIR>/danmu_<房间号>/<YYYY-MM>/<YYYY-MM-DD>.log
-LOG_SUBDIR = os.path.join(WORKDIR, f"danmu_{ROOM_ID}")
+# 弹幕日志按 房间号/年-月/年-月-日 分类：<WORKDIR>/房间号_<房间号>/<YYYY-MM>/<YYYY-MM-DD>.log
+LOG_SUBDIR = os.path.join(WORKDIR, f"房间号_{ROOM_ID}")
 os.makedirs(LOG_SUBDIR, exist_ok=True)
 
 def today_logfile():
