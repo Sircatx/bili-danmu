@@ -39,13 +39,16 @@ PUSH_INTERVAL = int(os.environ.get("PUSH_INTERVAL", "300"))
 
 os.makedirs(WORKDIR, exist_ok=True)
 
-# 弹幕日志按天分类：<WORKDIR>/danmu_<房间号>/<YYYY-MM-DD>.log
+# 弹幕日志按 房间号/年-月/年-月-日 分类：<WORKDIR>/danmu_<房间号>/<YYYY-MM>/<YYYY-MM-DD>.log
 LOG_SUBDIR = os.path.join(WORKDIR, f"danmu_{ROOM_ID}")
 os.makedirs(LOG_SUBDIR, exist_ok=True)
 
 def today_logfile():
-    """返回当天日志文件路径（跨零点自动切换到新文件）。"""
-    return os.path.join(LOG_SUBDIR, f"{datetime.now():%Y-%m-%d}.log")
+    """返回当天日志文件路径（跨零点自动切换到新文件；按年-月分目录）。"""
+    now = datetime.now()
+    month_dir = os.path.join(LOG_SUBDIR, f"{now:%Y-%m}")
+    os.makedirs(month_dir, exist_ok=True)
+    return os.path.join(month_dir, f"{now:%Y-%m-%d}.log")
 
 room = live.LiveDanmaku(ROOM_ID)
 

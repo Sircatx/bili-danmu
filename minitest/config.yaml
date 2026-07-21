@@ -1,0 +1,9 @@
+name: "最小测试"
+version: "0.0.1"
+slug: minitest
+description: "构建连通性测试"
+arch:
+  - aarch64
+init: false
+map:
+  - share:rw
