@@ -36,6 +36,7 @@ GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO = os.environ.get("GITHUB_REPO", "")        # 形如 owner/repo
 GITHUB_BRANCH = os.environ.get("GITHUB_BRANCH", "main")
 PUSH_INTERVAL = int(os.environ.get("PUSH_INTERVAL", "300"))
+SESSDATA = os.environ.get("SESSDATA", "")  # 可选：B站登录凭据，设置后可获取完整用户名（不匿名）
 
 os.makedirs(WORKDIR, exist_ok=True)
 
@@ -50,7 +51,12 @@ def today_logfile():
     os.makedirs(month_dir, exist_ok=True)
     return os.path.join(month_dir, f"{now:%Y-%m-%d}.log")
 
-room = live.LiveDanmaku(ROOM_ID)
+if SESSDATA:
+    room = live.LiveDanmaku(ROOM_ID, credential=live.Credential(sessdata=SESSDATA))
+    print(f"[config] 使用登录凭据连接（SESSDATA 已配置），用户名将完整显示")
+else:
+    room = live.LiveDanmaku(ROOM_ID)
+    print(f"[config] 未配置 SESSDATA，匿名连接（用户名会被打码）")
 
 
 # ---------- HTTP 健康检查（Koyeb worker 类型不暴露端口，起一个也无害）----------
