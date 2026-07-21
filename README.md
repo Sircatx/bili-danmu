@@ -1,41 +1,63 @@
-# Bilibili 直播间弹幕采集
+# B站弹幕采集
 
-基于 `bilibili-api-python` 的弹幕监控脚本，反爬签名和 cookie 由库自动处理。
-**挂云端（免费 · 免绑卡 · 日志发 Gitee）见 `README_deploy.md`。**
+基于 Docker 的 B站直播弹幕自动采集工具，部署在 Home Assistant 上。
 
-## 安装依赖
+## 功能
 
-```powershell
-cd C:\Project\bilibili-danmu-capture
-python -m venv venv
-.\venv\Scripts\pip install -r requirements.txt
+- 实时采集 B站直播弹幕
+- 弹幕日志自动推送到 GitHub 私有仓库
+- HA 开关控制采集启停
+- 扫码登录获取完整用户名（可选）
+- 每小时自动推送一次
+
+## 使用
+
+### HA 仪表盘
+
+在 Home Assistant 侧边栏 **B站弹幕** 仪表盘中：
+- 开关控制弹幕采集的启停
+- 查看使用说明和弹幕日志链接
+
+### 查看弹幕日志
+
+[查看弹幕日志](https://github.com/Sircatx/bili-danmu-logs/tree/main/)
+
+目录结构: `房间号/年/月/年-月-日.log`
+
+### 扫码登录（获取完整用户名）
+
+默认匿名连接，用户名会打码。扫码登录后显示完整用户名：
+
+```bash
+docker exec -it danmu_501 python bilibili_login.py --qr-file /data/bili_qr.png
 ```
 
-## 运行
+扫码成功后 SESSDATA 自动写入 `/data/.sessdata`，重启容器生效。
 
-```powershell
-.\venv\Scripts\python danmu.py 房间号
+### 环境变量
+
+| 变量 | 说明 | 默认值 |
+|---|---|---|
+| `ROOM_ID` | B站直播间房间号 | 必填 |
+| `WORKDIR` | 数据目录 | `/data` |
+| `GITHUB_TOKEN` | GitHub Token（推送日志） | - |
+| `GITHUB_REPO` | 日志仓库 | - |
+| `GITHUB_BRANCH` | 分支 | `main` |
+| `PUSH_INTERVAL` | 推送间隔（秒） | `300` |
+| `SESSDATA` | B站登录凭据（环境变量） | - |
+
+> SESSDATA 优先从环境变量读取，其次从 `$WORKDIR/.sessdata` 文件读取（扫码登录自动写入）。
+
+## 部署
+
+```bash
+docker run -d \
+  --name danmu_501 \
+  --restart unless-stopped \
+  -e ROOM_ID=501 \
+  -e GITHUB_TOKEN=your_token \
+  -e GITHUB_REPO=user/repo \
+  -e PUSH_INTERVAL=3600 \
+  -v /path/to/data:/data \
+  danmu:latest
 ```
-
-示例：监控 B站官方直播（房间 6）
-
-```powershell
-.\venv\Scripts\python danmu.py 6
-```
-
-## 输出
-
-- 控制台实时打印弹幕
-- 弹幕追加写入 `data/danmu_房间号.log`
-- 按 `Ctrl+C` 停止
-
-## 房间号怎么找
-
-打开直播间，URL 里长串数字就是房间号，例如：
-`https://live.bilibili.com/6`
-
-房间号 = `6`。
-
-## 自定义
-
-想监听更多事件（礼物、上舰等），在 `danmu.py` 里加 `@room.on("事件名")` 即可。
