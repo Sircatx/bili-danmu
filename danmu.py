@@ -75,17 +75,31 @@ def git_setup():
     if not (GITHUB_REPO and GITHUB_TOKEN):
         print("[git] 未配置 GITHUB_REPO/GITHUB_TOKEN，仅本地记录弹幕（容器重启会丢）。")
         return False
-    if not os.path.exists(os.path.join(WORKDIR, ".git")):
-        print(f"[git] clone {GITHUB_REPO} -> {WORKDIR}")
-        r = subprocess.run(["git", "clone", github_remote(), WORKDIR],
-                           capture_output=True, text=True)
-        if r.returncode != 0:
-            print("[git] clone 失败:", r.stderr.strip()[-300:])
-            return False
+    # 原地 init（不用 clone，避免 WORKDIR 非空时 clone 报 "destination not empty"），
+    # 再 fetch + checkout 拉取历史弹幕，实现容器重启续传。幂等：重复调用安全。
+    subprocess.run(["git", "-C", WORKDIR, "init", "-q"], capture_output=True)
     subprocess.run(["git", "-C", WORKDIR, "config", "user.email", "danmu@bot"],
                    capture_output=True)
     subprocess.run(["git", "-C", WORKDIR, "config", "user.name", "danmu-bot"],
                    capture_output=True)
+    # 设置/更新 remote（token 轮换后也能生效）
+    r = subprocess.run(["git", "-C", WORKDIR, "remote", "set-url", "origin", github_remote()],
+                       capture_output=True, text=True)
+    if r.returncode != 0:
+        subprocess.run(["git", "-C", WORKDIR, "remote", "add", "origin", github_remote()],
+                       capture_output=True)
+    # 拉取远端历史（若远端已有该分支）
+    f = subprocess.run(["git", "-C", WORKDIR, "fetch", "-q", "origin", GITHUB_BRANCH],
+                       capture_output=True, text=True)
+    if f.returncode == 0:
+        # 用远端分支为基线，保留本地未提交的新弹幕文件
+        subprocess.run(["git", "-C", WORKDIR, "checkout", "-B", GITHUB_BRANCH,
+                        f"origin/{GITHUB_BRANCH}"], capture_output=True)
+        print(f"[git] 已拉取远端 {GITHUB_REPO}@{GITHUB_BRANCH}（续传历史弹幕）")
+    else:
+        subprocess.run(["git", "-C", WORKDIR, "checkout", "-B", GITHUB_BRANCH],
+                       capture_output=True)
+        print(f"[git] 远端无 {GITHUB_BRANCH} 分支，将首次创建（{f.stderr.strip()[-120:]}）")
     return True
 
 def git_push():
