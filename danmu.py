@@ -100,6 +100,10 @@ def git_setup():
     if not (GITHUB_REPO and GITHUB_TOKEN):
         print("[git] 未配置 GITHUB_REPO/GITHUB_TOKEN，仅本地记录弹幕（容器重启会丢）。")
         return False
+    # 写入 .gitignore，排除凭据和临时文件（只推送弹幕日志）
+    gitignore_path = os.path.join(WORKDIR, ".gitignore")
+    with open(gitignore_path, "w", encoding="utf-8") as gf:
+        gf.write(".sessdata\n*.png\nbilibili_login.py\n__pycache__/\n*.pyc\n")
     # 原地 init（不用 clone，避免 WORKDIR 非空时 clone 报 "destination not empty"），
     # 再 fetch + checkout 拉取历史弹幕，实现容器重启续传。幂等：重复调用安全。
     subprocess.run(["git", "-C", WORKDIR, "init", "-q"], capture_output=True)
