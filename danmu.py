@@ -38,7 +38,14 @@ GITHUB_BRANCH = os.environ.get("GITHUB_BRANCH", "main")
 PUSH_INTERVAL = int(os.environ.get("PUSH_INTERVAL", "300"))
 
 os.makedirs(WORKDIR, exist_ok=True)
-OUTPUT = os.path.join(WORKDIR, f"danmu_{ROOM_ID}.log")
+
+# 弹幕日志按天分类：<WORKDIR>/danmu_<房间号>/<YYYY-MM-DD>.log
+LOG_SUBDIR = os.path.join(WORKDIR, f"danmu_{ROOM_ID}")
+os.makedirs(LOG_SUBDIR, exist_ok=True)
+
+def today_logfile():
+    """返回当天日志文件路径（跨零点自动切换到新文件）。"""
+    return os.path.join(LOG_SUBDIR, f"{datetime.now():%Y-%m-%d}.log")
 
 room = live.LiveDanmaku(ROOM_ID)
 
@@ -131,26 +138,29 @@ def schedule_push():
 
 
 # ---------- 弹幕回调 ----------
+def _write_log(line):
+    """写入当天日志文件（按天分类，跨零点自动落到新文件）。"""
+    print(line)
+    with open(today_logfile(), "a", encoding="utf-8") as f:
+        f.write(line + "\n")
+
 @room.on("DANMU_MSG")
 async def on_danmu(event):
     info = event["data"]["info"]
     text = info[1]
     username = info[2][1]
     uid = info[2][0]
-    line = f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {username}({uid}): {text}"
-    print(line)
-    with open(OUTPUT, "a", encoding="utf-8") as f:
-        f.write(line + "\n")
+    _write_log(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] {username}({uid}): {text}")
 
 @room.on("SEND_GIFT")
 async def on_gift(event):
     data = event["data"]["data"]
-    print(f"[礼物] {data.get('username', '')} 送出 {data.get('giftName', '')} x{data.get('num', 1)}")
+    _write_log(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] [礼物] {data.get('username', '')} 送出 {data.get('giftName', '')} x{data.get('num', 1)}")
 
 @room.on("GUARD_BUY")
 async def on_guard(event):
     data = event["data"]["data"]
-    print(f"[上舰] {data.get('username', '')} {data.get('gift_name', '')}")
+    _write_log(f"[{datetime.now():%Y-%m-%d %H:%M:%S}] [上舰] {data.get('username', '')} {data.get('gift_name', '')}")
 
 
 # ---------- 优雅退出（容器停止时最后推一次）----------
