@@ -11,7 +11,7 @@ RUN sed -i 's|http://deb.debian.org/debian|https://mirrors.tuna.tsinghua.edu.cn/
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY danmu.py bilibili_login.py .
+COPY danmu.py bilibili_login.py ./
 
 # Koyeb Worker 类型不暴露公网端口；脚本内部仍起一个 HTTP 健康检查 server（无害）。
 # 若用 Web 类型，Koyeb 会注入 PORT，脚本监听它做 /health 探测。
