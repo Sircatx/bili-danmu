@@ -15,7 +15,7 @@
 侧边栏 **B站弹幕** 仪表盘：
 
 - **弹幕采集控制** 开关 — 启停采集
-- **房间号** 输入框 + **切换** 按钮 — 填新房间号点切换即可换直播间
+- **房间号** 输入框 + **切换** 按钮 — 填新房间号点切换即可换直播间（默认房间号 `3780806`）
 - **使用说明** — 含日志查看链接
 
 ## 架构
@@ -70,7 +70,7 @@ docker build -t danmu:latest .
 docker run -d \
   --name danmu_capture \
   --restart unless-stopped \
-  -e ROOM_ID=501 \
+  -e ROOM_ID=3780806 \
   -e GITHUB_TOKEN=your_token \
   -e GITHUB_REPO=user/repo \
   -e PUSH_INTERVAL=3600 \
