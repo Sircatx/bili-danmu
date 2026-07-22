@@ -79,3 +79,23 @@ docker run -d \
 ```
 
 切换房间脚本 `danmu-switch.sh` 部署到宿主机 `/root/`，由 HA 的 script 调用。
+
+## 登录状态监控
+
+`danmu_login_check.py` 定期检测 SESSDATA 是否有效，失效时推送提醒重新扫码。
+
+- **检测方式**：SSH 到 HA 主机，在容器内用 SESSDATA 调 B站接口 `check_valid()`
+- **触发推送**：`INVALID`（凭据过期）/ `NO_SESSDATA`（无凭据）/ 容器连不上
+- **静默逻辑**：登录有效时不打扰，仅失效时推送（适合 no_agent cron）
+- **推送通道**：部署到 Hermes scripts 目录时用 `push_lib.push()`（Bark + 回逍双通道，失败重试 3 次）
+
+配置（环境变量）：
+
+| 变量 | 说明 | 默认值 |
+|---|---|---|
+| `HA_HOST` | HA 主机 IP | `192.168.1.3` |
+| `HA_USER` | SSH 用户 | `root` |
+| `HA_PASS` | SSH 密码 | 必填 |
+| `CONTAINER` | 容器名 | `danmu_capture` |
+
+建议用 cron 每天检查一次（如 `0 10 * * *`）。
