@@ -32,10 +32,10 @@ HA 仪表盘 (switch + input_text + button)
    └─ script.danmu_switch_room ──SSH──▶ 宿主机 改 danmu.service 的 DANMU_ROOM
    │                                     → daemon-reload → systemctl restart
    │
-   └─ systemd danmu.service（容器 danmu_5540720）──每小时──▶ git push 到 Gitee
+   └─ systemd danmu.service（容器 danmu_capture）──每小时──▶ git push 到 Gitee
 ```
 
-采集由 **systemd 服务 `danmu.service`** 托管（开机自启 + `Restart=always`），容器名固定 `danmu_5540720`，房间号通过服务里的 `DANMU_ROOM` 环境变量传入。
+采集由 **systemd 服务 `danmu.service`** 托管（开机自启 + `Restart=always`），容器名固定 `danmu_capture`，房间号通过服务里的 `DANMU_ROOM` 环境变量传入。
 
 ## 查看弹幕日志
 
@@ -49,7 +49,7 @@ HA 仪表盘 (switch + input_text + button)
 默认匿名连接，用户名会打码。扫码登录后显示完整用户名：
 
 ```bash
-docker exec -it danmu_5540720 python bilibili_login.py --qr-file /data/bili_qr.png
+docker exec -it danmu_capture python bilibili_login.py --qr-file /data/bili_qr.png
 ```
 
 扫码成功后 SESSDATA 自动写入 `/data/.sessdata`，重启服务生效。
@@ -100,8 +100,8 @@ Restart=always
 RestartSec=10
 Environment=DANMU_ROOM=3282568
 EnvironmentFile=/opt/danmu/gitee.env
-ExecStartPre=-/usr/bin/docker rm -f danmu_5540720
-ExecStart=/usr/bin/docker run --rm --name danmu_5540720 \
+ExecStartPre=-/usr/bin/docker rm -f danmu_capture
+ExecStart=/usr/bin/docker run --rm --name danmu_capture \
   -e ROOM_ID=${DANMU_ROOM} -e TZ=Asia/Shanghai -e WORKDIR=/data \
   -e GITHUB_TOKEN=${GITHUB_TOKEN} -e GITHUB_REPO=${GITHUB_REPO} \
   -e GITHUB_BRANCH=${GITHUB_BRANCH} -e GIT_HOST=${GIT_HOST} \
@@ -138,6 +138,6 @@ systemctl daemon-reload && systemctl restart danmu.service
 | `HA_HOST` | HA 主机 IP | `192.168.1.3` |
 | `HA_USER` | SSH 用户 | `root` |
 | `HA_PASS` | SSH 密码 | 必填 |
-| `CONTAINER` | 容器名 | `danmu_5540720` |
+| `CONTAINER` | 容器名 | `danmu_capture` |
 
 建议用 cron 每天检查一次（如 `0 10 * * *`）。

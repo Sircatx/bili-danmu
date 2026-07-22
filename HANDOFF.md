@@ -16,11 +16,11 @@ HA 仪表盘 (开关 + 房间号输入框 + 切换按钮)
    └─ script.danmu_switch_room ──SSH──▶ 宿主机 改 danmu.service 的 DANMU_ROOM
    │                                     → daemon-reload → systemctl restart
    │
-   └─ systemd danmu.service（容器 danmu_5540720）──每小时──▶ git push 到 Gitee sircatx/bili-danmu-logs
+   └─ systemd danmu.service（容器 danmu_capture）──每小时──▶ git push 到 Gitee sircatx/bili-danmu-logs
 ```
 
 > ⚠️ **2026-07-23 架构迁移要点**（旧文档描述的 `danmu_capture` 手动容器 / GitHub / danmu-switch.sh 均已废弃）：
-> - 采集不再用手动 `docker run`，改由 **systemd 服务 `danmu.service`** 托管（开机自启 + `Restart=always`），容器名固定 `danmu_5540720`。
+> - 采集不再用手动 `docker run`，改由 **systemd 服务 `danmu.service`** 托管（开机自启 + `Restart=always`），容器名固定 `danmu_capture`。
 > - 日志仓从 GitHub 迁到 **Gitee**（`sircatx/bili-danmu-logs`），HA 盒子直连 Gitee，**电脑关机/代理没开都能推**。代码仓 `bili-danmu` 仍在 GitHub（推代码需电脑走代理）。
 > - 容器加 `TZ=Asia/Shanghai`，弹幕时间戳/文件名日期改用北京时间（旧的 UTC 历史日志已 +8h 修正）。
 
@@ -65,7 +65,7 @@ docker exec hassio_cli ha apps restart core_ssh
 | 项目 | 值 |
 |---|---|
 | **托管方式** | **systemd 服务 `danmu.service`**（`/etc/systemd/system/danmu.service`），开机自启 + `Restart=always` |
-| 容器名 | `danmu_5540720`（固定，历史遗留名，不代表房间号） |
+| 容器名 | `danmu_capture`（中性名，与房间号无关；换房间不改容器名） |
 | 镜像 | `danmu:latest`（python:3.11-slim + git + ca-certificates + tzdata + 清华源） |
 | 镜像源码 | `/opt/danmu/`（Dockerfile + danmu.py），改后 `cd /opt/danmu && docker build -t danmu:latest .` |
 | 数据挂载 | `-v /usr/share/hassio/share/danmu:/data` |
@@ -126,21 +126,21 @@ systemctl daemon-reload && systemctl restart danmu.service
 ### 扫码登录（获取完整用户名）
 默认匿名连接用户名会打码。扫码登录后显示完整用户名：
 ```bash
-docker exec -it danmu_5540720 python bilibili_login.py --qr-file /data/bili_qr.png
+docker exec -it danmu_capture python bilibili_login.py --qr-file /data/bili_qr.png
 ```
 扫码成功后 SESSDATA 自动写入 `/data/.sessdata`，重启服务生效。
 
 ### 查看采集状态
 ```bash
 systemctl status danmu.service
-docker logs danmu_5540720 --tail 20
-docker stats danmu_5540720 --no-stream        # 内存/CPU
+docker logs danmu_capture --tail 20
+docker stats danmu_capture --no-stream        # 内存/CPU
 ```
 
 ### 检查房间是否在直播
 房间不开播就没有弹幕（正常现象）。检查：
 ```bash
-docker exec danmu_5540720 python3 -c "from bilibili_api import live,sync; sync(live.LiveRoom(3282568).get_room_play_info())"
+docker exec danmu_capture python3 -c "from bilibili_api import live,sync; sync(live.LiveRoom(3282568).get_room_play_info())"
 # live_status: 0=未开播 1=直播中 2=轮播
 ```
 
