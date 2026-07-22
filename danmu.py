@@ -35,6 +35,10 @@ WORKDIR = os.environ.get("WORKDIR", "data")
 GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")
 GITHUB_REPO = os.environ.get("GITHUB_REPO", "")        # 形如 owner/repo
 GITHUB_BRANCH = os.environ.get("GITHUB_BRANCH", "main")
+# Git 托管平台：默认 gitee.com（国内直连，HA 盒子不依赖电脑代理，电脑关机也能推）。
+# 也可设 github.com（但被墙，需容器走代理）。
+GIT_HOST = os.environ.get("GIT_HOST", "gitee.com")
+GIT_USER = os.environ.get("GIT_USER", "sircatx")       # Gitee 用户名（URL 鉴权用）
 PUSH_INTERVAL = int(os.environ.get("PUSH_INTERVAL", "300"))
 SESSDATA = os.environ.get("SESSDATA", "")  # 可选：B站登录凭据，设置后可获取完整用户名（不匿名）
 
@@ -93,8 +97,11 @@ threading.Thread(target=start_health, daemon=True).start()
 
 # ---------- GitHub 同步（弹幕日志）----------
 def github_remote():
-    # 用 token 作为凭证嵌入 URL；此 URL 只用于 subprocess（capture_output），不打印到日志
-    return f"https://x-access-token:{GITHUB_TOKEN}@github.com/{GITHUB_REPO}.git"
+    # 用 token 作为凭证嵌入 URL；此 URL 只用于 subprocess（capture_output），不打印到日志。
+    # Gitee 用 "用户名:令牌@" 格式；GitHub 用 "x-access-token:令牌@" 格式。
+    if "gitee" in GIT_HOST:
+        return f"https://{GIT_USER}:{GITHUB_TOKEN}@{GIT_HOST}/{GITHUB_REPO}.git"
+    return f"https://x-access-token:{GITHUB_TOKEN}@{GIT_HOST}/{GITHUB_REPO}.git"
 
 def git_setup():
     if not (GITHUB_REPO and GITHUB_TOKEN):
